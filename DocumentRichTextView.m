@@ -4,6 +4,7 @@
 static const CGFloat IPAD1_DOC_MARGIN=14.0f;
 static const CGFloat IPAD1_DOC_PAGE_HEIGHT=900.0f;
 static const CGFloat IPAD1_DOC_PAGE_GAP=8.0f;
+static const NSInteger IPAD1_DOC_PAGE_RADIUS=2;
 
 @interface IP1DOCXPageView : UIView {
     CTFramesetterRef _framesetter;
@@ -62,8 +63,8 @@ static const CGFloat IPAD1_DOC_PAGE_GAP=8.0f;
         self.opaque=NO;
         self.clipsToBounds=NO;
         _baseFontSize=17.0f;
-        _pageViews=[[NSMutableArray alloc] init];
         _pageRanges=[[NSMutableArray alloc] init];
+        _visiblePages=[[NSMutableDictionary alloc] init];
         _layoutWidth=0.0f;
         _contentHeight=1.0f;
     }
@@ -72,9 +73,16 @@ static const CGFloat IPAD1_DOC_PAGE_GAP=8.0f;
 
 - (CGFloat)baseFontSize { return _baseFontSize; }
 
-- (void)clearPages {
-    for(UIView *view in _pageViews) [view removeFromSuperview];
-    [_pageViews removeAllObjects];
+- (void)clearVisiblePages {
+    for(NSNumber *key in [_visiblePages allKeys]) {
+        UIView *view=[_visiblePages objectForKey:key];
+        [view removeFromSuperview];
+    }
+    [_visiblePages removeAllObjects];
+}
+
+- (void)clearLayout {
+    [self clearVisiblePages];
     [_pageRanges removeAllObjects];
     _layoutWidth=0.0f;
     _contentHeight=1.0f;
@@ -98,7 +106,7 @@ static const CGFloat IPAD1_DOC_PAGE_GAP=8.0f;
 }
 
 - (void)rebuildFramesetter {
-    [self clearPages];
+    [self clearLayout];
     if(_framesetter) { CFRelease(_framesetter); _framesetter=NULL; }
     if(!_plainText) return;
 
@@ -148,24 +156,23 @@ static const CGFloat IPAD1_DOC_PAGE_GAP=8.0f;
     [self rebuildFramesetter];
 }
 
-- (void)buildPagesForWidth:(CGFloat)width {
+- (void)buildPageRangesForWidth:(CGFloat)width {
     if(!_framesetter || ![_plainText length] || width<=32.0f) {
-        [self clearPages];
+        [self clearLayout];
         _layoutWidth=width;
         _contentHeight=1.0f;
         return;
     }
 
-    if(fabs(_layoutWidth-width)<0.5f && [_pageViews count]>0) return;
+    if(fabs(_layoutWidth-width)<0.5f && [_pageRanges count]>0) return;
 
-    [self clearPages];
+    [self clearLayout];
     _layoutWidth=width;
 
     CGFloat textWidth=MAX(1.0f,width-(IPAD1_DOC_MARGIN*2.0f));
     CGFloat textHeight=MAX(1.0f,IPAD1_DOC_PAGE_HEIGHT-(IPAD1_DOC_MARGIN*2.0f));
     NSUInteger location=0;
     NSUInteger textLength=[_plainText length];
-    CGFloat y=0.0f;
 
     while(location<textLength) {
         CGPathRef path=CGPathCreateWithRect(CGRectMake(IPAD1_DOC_MARGIN,IPAD1_DOC_MARGIN,textWidth,textHeight),NULL);
@@ -179,45 +186,78 @@ static const CGFloat IPAD1_DOC_PAGE_GAP=8.0f;
 
         NSUInteger pageLength=(NSUInteger)visible.length;
         if(location+pageLength>textLength) pageLength=textLength-location;
-        CFRange pageRange=CFRangeMake((CFIndex)location,(CFIndex)pageLength);
-
-        IP1DOCXPageView *page=[[[IP1DOCXPageView alloc] initWithFrame:CGRectMake(0,y,width,IPAD1_DOC_PAGE_HEIGHT) framesetter:_framesetter range:pageRange] autorelease];
-        [self addSubview:page];
-        [_pageViews addObject:page];
         [_pageRanges addObject:[NSValue valueWithRange:NSMakeRange(location,pageLength)]];
-
         location+=pageLength;
-        y+=IPAD1_DOC_PAGE_HEIGHT+IPAD1_DOC_PAGE_GAP;
     }
 
-    if([_pageViews count]>0) y-=IPAD1_DOC_PAGE_GAP;
-    _contentHeight=MAX(1.0f,y);
+    NSUInteger pageCount=[_pageRanges count];
+    if(pageCount>0) {
+        _contentHeight=(CGFloat)pageCount*IPAD1_DOC_PAGE_HEIGHT+(CGFloat)(pageCount-1)*IPAD1_DOC_PAGE_GAP;
+    } else {
+        _contentHeight=1.0f;
+    }
 }
 
 - (CGFloat)contentHeightForWidth:(CGFloat)width {
-    [self buildPagesForWidth:width];
+    [self buildPageRangesForWidth:width];
     return _contentHeight;
+}
+
+- (void)updateVisiblePagesForOffset:(CGFloat)offset viewportHeight:(CGFloat)viewportHeight {
+    NSUInteger pageCount=[_pageRanges count];
+    if(pageCount==0 || _layoutWidth<=32.0f) {
+        [self clearVisiblePages];
+        return;
+    }
+
+    CGFloat stride=IPAD1_DOC_PAGE_HEIGHT+IPAD1_DOC_PAGE_GAP;
+    NSInteger first=(NSInteger)floor(MAX(0.0f,offset)/stride)-IPAD1_DOC_PAGE_RADIUS;
+    NSInteger last=(NSInteger)floor(MAX(0.0f,offset+MAX(1.0f,viewportHeight))/stride)+IPAD1_DOC_PAGE_RADIUS;
+    if(first<0) first=0;
+    if(last>=(NSInteger)pageCount) last=(NSInteger)pageCount-1;
+
+    for(NSNumber *key in [[_visiblePages allKeys] copy]) {
+        NSInteger idx=[key integerValue];
+        if(idx<first || idx>last) {
+            UIView *view=[_visiblePages objectForKey:key];
+            [view removeFromSuperview];
+            [_visiblePages removeObjectForKey:key];
+        }
+    }
+
+    for(NSInteger idx=first; idx<=last; idx++) {
+        NSNumber *key=[NSNumber numberWithInteger:idx];
+        if([_visiblePages objectForKey:key]) continue;
+
+        NSRange r=[[_pageRanges objectAtIndex:(NSUInteger)idx] rangeValue];
+        CGFloat y=(CGFloat)idx*stride;
+        IP1DOCXPageView *page=[[[IP1DOCXPageView alloc] initWithFrame:CGRectMake(0,y,_layoutWidth,IPAD1_DOC_PAGE_HEIGHT)
+                                                                  framesetter:_framesetter
+                                                                        range:CFRangeMake((CFIndex)r.location,(CFIndex)r.length)] autorelease];
+        [self addSubview:page];
+        [_visiblePages setObject:page forKey:key];
+    }
 }
 
 - (CGFloat)yOffsetForCharacterIndex:(NSUInteger)index {
     NSUInteger count=[_pageRanges count];
+    CGFloat stride=IPAD1_DOC_PAGE_HEIGHT+IPAD1_DOC_PAGE_GAP;
     for(NSUInteger i=0;i<count;i++) {
         NSRange r=[[_pageRanges objectAtIndex:i] rangeValue];
         if(index>=r.location && index<NSMaxRange(r)) {
-            UIView *page=[_pageViews objectAtIndex:i];
-            return MAX(0.0f,page.frame.origin.y-IPAD1_DOC_MARGIN);
+            return MAX(0.0f,(CGFloat)i*stride-IPAD1_DOC_MARGIN);
         }
     }
     return 0.0f;
 }
 
 - (void)dealloc {
-    [self clearPages];
+    [self clearLayout];
     if(_framesetter) CFRelease(_framesetter);
     [_plainText release];
     [_styles release];
-    [_pageViews release];
     [_pageRanges release];
+    [_visiblePages release];
     [super dealloc];
 }
 @end
