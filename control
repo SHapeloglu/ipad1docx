@@ -1,0 +1,9 @@
+Package: com.olap.ipad1docxreader
+Name: iPad 1 DOCX Reader
+Version: 0.1.0
+Architecture: iphoneos-arm
+Description: Lightweight read-only DOCX reader for iPad 1 / iOS 5.1.1
+Maintainer: OLAP
+Author: OLAP
+Section: Utilities
+Depends: firmware (>= 5.0)
