@@ -2,20 +2,83 @@
 #import <math.h>
 
 static const CGFloat IPAD1_DOC_MARGIN=14.0f;
+static const CGFloat IPAD1_DOC_PAGE_HEIGHT=900.0f;
+static const CGFloat IPAD1_DOC_PAGE_GAP=8.0f;
+
+@interface IP1DOCXPageView : UIView {
+    CTFramesetterRef _framesetter;
+    CFRange _textRange;
+}
+- (id)initWithFrame:(CGRect)frame framesetter:(CTFramesetterRef)framesetter range:(CFRange)range;
+@end
+
+@implementation IP1DOCXPageView
+
+- (id)initWithFrame:(CGRect)frame framesetter:(CTFramesetterRef)framesetter range:(CFRange)range {
+    if((self=[super initWithFrame:frame])) {
+        self.backgroundColor=[UIColor whiteColor];
+        self.opaque=YES;
+        _framesetter=framesetter;
+        if(_framesetter) CFRetain(_framesetter);
+        _textRange=range;
+    }
+    return self;
+}
+
+- (void)drawRect:(CGRect)rect {
+    (void)rect;
+    CGContextRef context=UIGraphicsGetCurrentContext();
+    if(!context || !_framesetter || _textRange.length<=0) return;
+
+    CGRect textRect=CGRectInset(self.bounds,IPAD1_DOC_MARGIN,IPAD1_DOC_MARGIN);
+    if(textRect.size.width<1.0f || textRect.size.height<1.0f) return;
+
+    CGPathRef path=CGPathCreateWithRect(textRect,NULL);
+    CTFrameRef frame=CTFramesetterCreateFrame(_framesetter,_textRange,path,NULL);
+    CGPathRelease(path);
+    if(!frame) return;
+
+    CGContextSaveGState(context);
+    CGContextSetTextMatrix(context,CGAffineTransformIdentity);
+    CGContextTranslateCTM(context,0,self.bounds.size.height);
+    CGContextScaleCTM(context,1.0f,-1.0f);
+    CTFrameDraw(frame,context);
+    CGContextRestoreGState(context);
+    CFRelease(frame);
+}
+
+- (void)dealloc {
+    if(_framesetter) CFRelease(_framesetter);
+    [super dealloc];
+}
+@end
 
 @implementation DocumentRichTextView
 @synthesize plainText=_plainText;
 
 - (id)initWithFrame:(CGRect)frame {
     if((self=[super initWithFrame:frame])) {
-        self.backgroundColor=[UIColor whiteColor];
-        self.opaque=YES;
+        self.backgroundColor=[UIColor clearColor];
+        self.opaque=NO;
+        self.clipsToBounds=NO;
         _baseFontSize=17.0f;
+        _pageViews=[[NSMutableArray alloc] init];
+        _pageRanges=[[NSMutableArray alloc] init];
+        _layoutWidth=0.0f;
+        _contentHeight=1.0f;
     }
     return self;
 }
 
 - (CGFloat)baseFontSize { return _baseFontSize; }
+
+- (void)clearPages {
+    for(UIView *view in _pageViews) [view removeFromSuperview];
+    [_pageViews removeAllObjects];
+    [_pageRanges removeAllObjects];
+    _layoutWidth=0.0f;
+    _contentHeight=1.0f;
+}
 
 - (void)setBaseFontSize:(CGFloat)size {
     if(size<10.0f) size=10.0f;
@@ -35,8 +98,9 @@ static const CGFloat IPAD1_DOC_MARGIN=14.0f;
 }
 
 - (void)rebuildFramesetter {
+    [self clearPages];
     if(_framesetter) { CFRelease(_framesetter); _framesetter=NULL; }
-    if(!_plainText) { [self setNeedsDisplay]; return; }
+    if(!_plainText) return;
 
     CFMutableAttributedStringRef attr=CFAttributedStringCreateMutable(kCFAllocatorDefault,0);
     CFAttributedStringReplaceString(attr,CFRangeMake(0,0),(CFStringRef)_plainText);
@@ -74,7 +138,6 @@ static const CGFloat IPAD1_DOC_MARGIN=14.0f;
 
     _framesetter=CTFramesetterCreateWithAttributedString(attr);
     CFRelease(attr);
-    [self setNeedsDisplay];
 }
 
 - (void)setDocumentText:(NSString *)text styles:(NSArray *)styles {
@@ -85,65 +148,76 @@ static const CGFloat IPAD1_DOC_MARGIN=14.0f;
     [self rebuildFramesetter];
 }
 
-- (CGFloat)contentHeightForWidth:(CGFloat)width {
-    if(!_framesetter) return 1.0f;
+- (void)buildPagesForWidth:(CGFloat)width {
+    if(!_framesetter || ![_plainText length] || width<=32.0f) {
+        [self clearPages];
+        _layoutWidth=width;
+        _contentHeight=1.0f;
+        return;
+    }
+
+    if(fabs(_layoutWidth-width)<0.5f && [_pageViews count]>0) return;
+
+    [self clearPages];
+    _layoutWidth=width;
+
     CGFloat textWidth=MAX(1.0f,width-(IPAD1_DOC_MARGIN*2.0f));
-    CGSize suggested=CTFramesetterSuggestFrameSizeWithConstraints(_framesetter,CFRangeMake(0,0),NULL,CGSizeMake(textWidth,CGFLOAT_MAX),NULL);
-    return ceil(suggested.height)+(IPAD1_DOC_MARGIN*2.0f)+8.0f;
+    CGFloat textHeight=MAX(1.0f,IPAD1_DOC_PAGE_HEIGHT-(IPAD1_DOC_MARGIN*2.0f));
+    NSUInteger location=0;
+    NSUInteger textLength=[_plainText length];
+    CGFloat y=0.0f;
+
+    while(location<textLength) {
+        CGPathRef path=CGPathCreateWithRect(CGRectMake(IPAD1_DOC_MARGIN,IPAD1_DOC_MARGIN,textWidth,textHeight),NULL);
+        CTFrameRef frame=CTFramesetterCreateFrame(_framesetter,CFRangeMake((CFIndex)location,0),path,NULL);
+        CGPathRelease(path);
+        if(!frame) break;
+
+        CFRange visible=CTFrameGetVisibleStringRange(frame);
+        CFRelease(frame);
+        if(visible.length<=0) break;
+
+        NSUInteger pageLength=(NSUInteger)visible.length;
+        if(location+pageLength>textLength) pageLength=textLength-location;
+        CFRange pageRange=CFRangeMake((CFIndex)location,(CFIndex)pageLength);
+
+        IP1DOCXPageView *page=[[[IP1DOCXPageView alloc] initWithFrame:CGRectMake(0,y,width,IPAD1_DOC_PAGE_HEIGHT) framesetter:_framesetter range:pageRange] autorelease];
+        [self addSubview:page];
+        [_pageViews addObject:page];
+        [_pageRanges addObject:[NSValue valueWithRange:NSMakeRange(location,pageLength)]];
+
+        location+=pageLength;
+        y+=IPAD1_DOC_PAGE_HEIGHT+IPAD1_DOC_PAGE_GAP;
+    }
+
+    if([_pageViews count]>0) y-=IPAD1_DOC_PAGE_GAP;
+    _contentHeight=MAX(1.0f,y);
 }
 
-- (CTFrameRef)newFrameForCurrentBounds {
-    if(!_framesetter) return NULL;
-    CGRect rect=CGRectInset(self.bounds,IPAD1_DOC_MARGIN,IPAD1_DOC_MARGIN);
-    if(rect.size.width<1.0f || rect.size.height<1.0f) return NULL;
-    CGPathRef path=CGPathCreateWithRect(rect,NULL);
-    CTFrameRef frame=CTFramesetterCreateFrame(_framesetter,CFRangeMake(0,0),path,NULL);
-    CGPathRelease(path);
-    return frame;
+- (CGFloat)contentHeightForWidth:(CGFloat)width {
+    [self buildPagesForWidth:width];
+    return _contentHeight;
 }
 
 - (CGFloat)yOffsetForCharacterIndex:(NSUInteger)index {
-    CTFrameRef frame=[self newFrameForCurrentBounds];
-    if(!frame) return 0.0f;
-    CFArrayRef lines=CTFrameGetLines(frame);
-    CFIndex count=CFArrayGetCount(lines);
-    CGPoint *origins=NULL;
-    if(count>0) origins=(CGPoint *)calloc((size_t)count,sizeof(CGPoint));
-    if(origins) CTFrameGetLineOrigins(frame,CFRangeMake(0,count),origins);
-    CGFloat y=0.0f;
-    for(CFIndex i=0;i<count;i++) {
-        CTLineRef line=(CTLineRef)CFArrayGetValueAtIndex(lines,i);
-        CFRange r=CTLineGetStringRange(line);
-        if(index>=(NSUInteger)r.location && index<=(NSUInteger)(r.location+r.length)) {
-            y=MAX(0.0f,self.bounds.size.height-origins[i].y-(_baseFontSize*2.0f));
-            break;
+    NSUInteger count=[_pageRanges count];
+    for(NSUInteger i=0;i<count;i++) {
+        NSRange r=[[_pageRanges objectAtIndex:i] rangeValue];
+        if(index>=r.location && index<NSMaxRange(r)) {
+            UIView *page=[_pageViews objectAtIndex:i];
+            return MAX(0.0f,page.frame.origin.y-IPAD1_DOC_MARGIN);
         }
     }
-    if(origins) free(origins);
-    CFRelease(frame);
-    return y;
-}
-
-- (void)drawRect:(CGRect)rect {
-    (void)rect;
-    CGContextRef context=UIGraphicsGetCurrentContext();
-    if(!context || !_framesetter) return;
-    CGContextSaveGState(context);
-    CGContextSetTextMatrix(context,CGAffineTransformIdentity);
-    CGContextTranslateCTM(context,0,self.bounds.size.height);
-    CGContextScaleCTM(context,1.0f,-1.0f);
-    CTFrameRef frame=[self newFrameForCurrentBounds];
-    if(frame) {
-        CTFrameDraw(frame,context);
-        CFRelease(frame);
-    }
-    CGContextRestoreGState(context);
+    return 0.0f;
 }
 
 - (void)dealloc {
+    [self clearPages];
     if(_framesetter) CFRelease(_framesetter);
     [_plainText release];
     [_styles release];
+    [_pageViews release];
+    [_pageRanges release];
     [super dealloc];
 }
 @end
