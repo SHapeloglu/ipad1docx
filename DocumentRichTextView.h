@@ -6,6 +6,10 @@
     NSArray *_styles;
     CGFloat _baseFontSize;
     CTFramesetterRef _framesetter;
+    NSMutableArray *_pageViews;
+    NSMutableArray *_pageRanges;
+    CGFloat _layoutWidth;
+    CGFloat _contentHeight;
 }
 @property(nonatomic,readonly) NSString *plainText;
 @property(nonatomic,assign) CGFloat baseFontSize;
