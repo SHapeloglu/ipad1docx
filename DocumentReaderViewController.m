@@ -6,6 +6,29 @@ static const CGFloat IPAD1_DOC_DEFAULT_FONT=17.0f;
 static const CGFloat IPAD1_DOC_MIN_FONT=10.0f;
 static const CGFloat IPAD1_DOC_MAX_FONT=28.0f;
 
+static NSString *IP1DOCXReaderDebugLogPath(void) {
+    return @"/var/mobile/Media/iPad1Files/ipad1docx-debug.log";
+}
+
+static void IP1DOCXReaderDebugLog(NSString *message) {
+    if(!message) return;
+    NSString *line=[NSString stringWithFormat:@"%@\n",message];
+    NSData *data=[line dataUsingEncoding:NSUTF8StringEncoding];
+    NSFileManager *fm=[NSFileManager defaultManager];
+    NSString *path=IP1DOCXReaderDebugLogPath();
+    if(![fm fileExistsAtPath:path]) [fm createFileAtPath:path contents:nil attributes:nil];
+    NSFileHandle *handle=[NSFileHandle fileHandleForWritingAtPath:path];
+    if(handle) {
+        @try {
+            [handle seekToEndOfFile];
+            [handle writeData:data];
+        } @catch(NSException *exception) {
+            (void)exception;
+        }
+        [handle closeFile];
+    }
+}
+
 @implementation DocumentReaderViewController
 
 - (id)initWithDocumentPath:(NSString *)path {
@@ -13,12 +36,14 @@ static const CGFloat IPAD1_DOC_MAX_FONT=28.0f;
         _filePath=[path copy];
         _fontSize=IPAD1_DOC_DEFAULT_FONT;
         _lastMatch=NSMakeRange(NSNotFound,0);
+        IP1DOCXReaderDebugLog([NSString stringWithFormat:@"READER init: %@",_filePath?:@"<nil>"]);
     }
     return self;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    IP1DOCXReaderDebugLog(@"READER viewDidLoad begin");
     self.title=[_filePath lastPathComponent];
     self.view.backgroundColor=[UIColor whiteColor];
     self.navigationItem.rightBarButtonItem=[[[UIBarButtonItem alloc] initWithTitle:@"Ara" style:UIBarButtonItemStylePlain target:self action:@selector(showSearchActions)] autorelease];
@@ -41,7 +66,9 @@ static const CGFloat IPAD1_DOC_MAX_FONT=28.0f;
     _toolbar.items=[NSArray arrayWithObjects:minus,flex,plus,flex,info,nil];
     [self.view addSubview:_toolbar];
 
+    IP1DOCXReaderDebugLog(@"READER UI created");
     [self loadDocument];
+    IP1DOCXReaderDebugLog(@"READER viewDidLoad end");
 }
 
 - (void)viewDidLayoutSubviews {
@@ -59,24 +86,33 @@ static const CGFloat IPAD1_DOC_MAX_FONT=28.0f;
 }
 
 - (void)loadDocument {
+    IP1DOCXReaderDebugLog([NSString stringWithFormat:@"READER loadDocument begin: %@",_filePath?:@"<nil>"]);
     if(!_filePath || ![[NSFileManager defaultManager] fileExistsAtPath:_filePath]) {
+        IP1DOCXReaderDebugLog(@"READER loadDocument fail: file missing");
         [self showSimpleAlert:@"Dosya açılamadı" message:@"Dosya bulunamadı."];
         return;
     }
     NSDictionary *attrs=[[NSFileManager defaultManager] attributesOfItemAtPath:_filePath error:nil];
     _fileSize=[[attrs objectForKey:NSFileSize] unsignedLongLongValue];
+    IP1DOCXReaderDebugLog([NSString stringWithFormat:@"READER file size: %llu",_fileSize]);
     if(_fileSize>[DOCXReader maximumSafeCompressedSize]) {
+        IP1DOCXReaderDebugLog(@"READER loadDocument fail: file too large");
         [self showSimpleAlert:@"Dosya çok büyük" message:@"DOCX dosyası iPad 1 için 8 MiB güvenli sınırını aşıyor."];
         return;
     }
     DOCXReader *reader=[[[DOCXReader alloc] init] autorelease];
     NSError *error=nil;
+    IP1DOCXReaderDebugLog(@"READER parse begin");
     if(![reader loadDOCXAtPath:_filePath error:&error]) {
+        IP1DOCXReaderDebugLog([NSString stringWithFormat:@"READER parse fail: %@",[error localizedDescription]?:@"<no error>"]);
         [self showSimpleAlert:@"DOCX açılamadı" message:[error localizedDescription]];
         return;
     }
+    IP1DOCXReaderDebugLog([NSString stringWithFormat:@"READER parse success text=%u styles=%u",(unsigned int)[reader.plainText length],(unsigned int)[reader.styles count]]);
     [_richView setDocumentText:reader.plainText styles:reader.styles];
+    IP1DOCXReaderDebugLog(@"READER rich text set");
     [self relayoutPreservingOffset:NO];
+    IP1DOCXReaderDebugLog(@"READER loadDocument success");
 }
 
 - (void)relayoutPreservingOffset:(BOOL)preserve {
@@ -166,6 +202,7 @@ static const CGFloat IPAD1_DOC_MAX_FONT=28.0f;
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
+    IP1DOCXReaderDebugLog(@"READER memory warning");
     if(!self.view.window) {
         [_richView setDocumentText:nil styles:nil];
         [_searchTerm release]; _searchTerm=nil;
@@ -174,6 +211,7 @@ static const CGFloat IPAD1_DOC_MAX_FONT=28.0f;
 }
 
 - (void)dealloc {
+    IP1DOCXReaderDebugLog(@"READER dealloc");
     [_filePath release]; [_richView release]; [_scrollView release]; [_toolbar release]; [_searchTerm release];
     [super dealloc];
 }
