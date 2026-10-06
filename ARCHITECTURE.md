@@ -1,9 +1,9 @@
 # ARCHITECTURE.md
 
-## Goal
-Provide the lightest practical DOCX reading experience for iPad 1 / iOS 5.1.1 without attempting desktop Word fidelity.
+## Hedef
+Masaüstü Word sadakatine çalışmadan iPad 1 / iOS 5.1.1 için pratikteki en hafif DOCX okuma deneyimini sağlamak.
 
-## Components
+## Bileşenler
 ```text
 AppDelegate
   -> receives ipad1docx://open?path=...
@@ -30,39 +30,41 @@ DocumentRichTextView
   -> no WebView / HTML / JavaScript
 ```
 
-## URL contract
-Primary open contract:
+Özetle: `AppDelegate` adresi alıp yolu/uzantıyı doğrular; `DocumentReaderViewController` dosya korumaları, kontroller ve aramayı yönetir; `DOCXReader` sınırlı ZIP taraması yapıp yalnızca `word/document.xml`'i akışla ayrıştırır; `DocumentRichTextView` CoreText ile küçük, sanallaştırılmış bir sayfa penceresi görüntüler (WebView/HTML/JavaScript yok).
+
+## URL sözleşmesi
+Birincil açma sözleşmesi:
 ```text
 ipad1docx://open?path=<percent-encoded absolute path>
 ```
 
-The reader opens the original file in place. It does not copy, move or own the file lifecycle.
+Okuyucu orijinal dosyayı yerinde açar. Dosyayı kopyalamaz, taşımaz veya yaşam döngüsünü sahiplenmez.
 
-## Shared storage boundary
-Canonical shared storage remains under:
+## Ortak depolama sınırı
+Standart ortak depolama şurada kalır:
 ```text
 /var/mobile/Media/iPad1Files
 ```
 
-`iPad1Files` owns browsing, copy/move/rename/delete and file routing. `iPad1DOCXReader` only receives a path and reads the DOCX.
+Gezinme, kopyala/taşı/yeniden adlandır/sil ve dosya yönlendirme `iPad1Files`'a aittir. `iPad1DOCXReader` yalnızca bir yol alır ve DOCX'i okur.
 
-## Memory architecture
-The iPad 1 has only 256 MB RAM. The renderer must therefore avoid document-height backing stores and document-wide live page views.
+## Bellek mimarisi
+iPad 1'de yalnızca 256 MB RAM var. Bu yüzden görüntüleyici belge yüksekliğinde arka depolardan ve belge genelinde canlı sayfa görünümlerinden kaçınmalıdır.
 
-Required rules:
-- compressed DOCX <= 8 MiB
+Zorunlu kurallar:
+- sıkıştırılmış DOCX <= 8 MiB
 - `word/document.xml` <= 4 MiB
-- style ranges <= 4096
-- no whole-package extraction
-- no image cache in v1
-- no background index
-- no remote relationship fetch
-- no single giant render view sized to full document height
-- page geometry may be precomputed, but only a small visible page window should own live `UIView` instances
-- target live render window: about 3–5 page views
-- release offscreen page views aggressively
+- stil aralıkları <= 4096
+- paketin tamamı çıkarılmaz
+- v1'de görsel önbelleği yok
+- arka plan dizini yok
+- uzak ilişki getirme yok
+- tam belge yüksekliğinde tek dev görüntüleme görünümü yok
+- sayfa geometrisi önceden hesaplanabilir, ancak yalnızca küçük, görünür bir sayfa penceresi canlı `UIView` örneklerine sahip olmalı
+- hedef canlı görüntüleme penceresi: yaklaşık 3–5 sayfa görünümü
+- ekran dışı sayfa görünümlerini agresif şekilde serbest bırak
 
-## Renderer flow
+## Görüntüleme akışı
 ```text
 DOCXReader
   -> plainText + styles
@@ -73,29 +75,29 @@ DOCXReader
   -> recycle/remove page views as scrolling changes
 ```
 
-This architecture intentionally separates:
-- document metadata/ranges: cheap and persistent;
-- CoreText framesetter: one shared object;
-- page views/backing stores: expensive and virtualized.
+Bu mimari bilinçli olarak şunları ayırır:
+- belge metadata'sı/aralıkları: ucuz ve kalıcı;
+- CoreText framesetter: tek ortak nesne;
+- sayfa görünümleri/arka depolar: pahalı ve sanallaştırılmış.
 
-## Supported v1 semantics
-- paragraphs / line breaks
-- bold / italic
-- basic headings
-- simple list indication
-- simple tables flattened into readable rows
-- empty/NBSP-only cells removed from visual separators
-- read-only search and font-size controls
+## Desteklenen v1 anlamları
+- paragraflar / satır sonları
+- kalın / italik
+- temel başlıklar
+- basit liste göstergesi
+- okunabilir satırlara düzleştirilmiş basit tablolar
+- boş/yalnızca NBSP içeren hücreler görsel ayraçlardan çıkarılır
+- salt okunur arama ve yazı boyutu kontrolleri
 
-## Explicit non-goals
-- editing/save
-- tracked changes/comments editor
-- pixel-perfect Word pagination
-- full Word styles/theme engine
-- macros
-- Office/LibreOffice SDK/runtime
-- general ZIP browser
+## Açıkça hedef dışı
+- düzenleme/kaydetme
+- izlenen değişiklikler/yorum düzenleyici
+- piksel piksel Word sayfalaması
+- tam Word stil/tema motoru
+- makrolar
+- Office/LibreOffice SDK/çalışma zamanı
+- genel ZIP gezgini
 - OCR / AI / ML
 
-## Suite ownership rule
-Every app remains a specialist. If another suite capability is needed, use URL handoff/callback rather than copying that subsystem into this app.
+## Uygulama ailesi sahiplik kuralı
+Her uygulama uzman kalır. Ailedeki başka bir yetenek gerekiyorsa, o alt sistemi bu uygulamaya kopyalamak yerine URL devri/geri çağrısı kullan.

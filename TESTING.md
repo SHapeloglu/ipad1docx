@@ -1,102 +1,102 @@
 # TESTING.md
 
-Physical iPad 1 / iOS 5.1.1 is the source of truth.
+Doğruluk kaynağı fiziksel iPad 1 / iOS 5.1.1'dir.
 
-Status vocabulary:
-- **COMPILE PASS**: builds successfully only.
-- **PHYSICAL PASS**: verified on the real iPad 1.
-- **FAIL**: physically reproduced failure.
-- **PENDING**: not yet physically verified.
+Durum sözlüğü:
+- **COMPILE PASS**: yalnızca başarıyla derleniyor.
+- **PHYSICAL PASS**: gerçek iPad 1'de doğrulandı.
+- **FAIL**: fiziksel olarak yeniden üretilmiş hata.
+- **PENDING**: henüz fiziksel olarak doğrulanmadı.
 
-## Build
+## Derleme
 ```bash
 make clean
 rm -rf .theos packages
 make package FINALPACKAGE=1
 ```
-Required: armv7, iOS 5.1 target, legacy iPhoneOS 6.1 SDK, MRC.
+Gerekenler: armv7, iOS 5.1 hedefi, eski iPhoneOS 6.1 SDK, MRC.
 
-Current build status: **COMPILE PASS**.
+Güncel derleme durumu: **COMPILE PASS**.
 
-## Open / routing
-- [x] standalone app launches — **PHYSICAL PASS**
-- [x] `ipad1docx://open?path=...` reaches the app — **PHYSICAL PASS**
-- [x] tested percent-encoded spaces decode correctly — **PHYSICAL PASS**
-- [ ] Turkish/Unicode path characters — **PENDING**
-- [ ] nonexistent path fails safely — **PENDING**
-- [ ] non-DOCX path is rejected — **PENDING**
+## Açma / yönlendirme
+- [x] bağımsız uygulama açılıyor — **PHYSICAL PASS**
+- [x] `ipad1docx://open?path=...` uygulamaya ulaşıyor — **PHYSICAL PASS**
+- [x] test edilen yüzde-kodlu boşluklar doğru çözülüyor — **PHYSICAL PASS**
+- [ ] Türkçe/Unicode yol karakterleri — **PENDING**
+- [ ] olmayan yol güvenle başarısız oluyor — **PENDING**
+- [ ] DOCX olmayan yol reddediliyor — **PENDING**
 
-## Parser pipeline
-Tested with:
+## Ayrıştırıcı hattı
+Test dosyası:
 ```text
 /var/mobile/Media/iPad1Files/PDFs/Les Miresables.docx
 ```
 
-Observed physical diagnostics:
-- compressed file size: 97,844 bytes
-- central directory found
-- `word/document.xml` found
-- compression method: deflate
-- inflated XML size: 1,498,378 bytes
-- NSXMLParser result: success
-- extracted text: 77,740 chars
-- style ranges: 898
+Gözlenen fiziksel tanılamalar:
+- sıkıştırılmış dosya boyutu: 97.844 bayt
+- merkezi dizin bulundu
+- `word/document.xml` bulundu
+- sıkıştırma yöntemi: deflate
+- açılmış XML boyutu: 1.498.378 bayt
+- NSXMLParser sonucu: başarılı
+- çıkarılan metin: 77.740 karakter
+- stil aralıkları: 898
 
-Status:
-- [x] ZIP central-directory scan — **PHYSICAL PASS**
-- [x] document.xml extraction — **PHYSICAL PASS**
-- [x] zlib raw inflate — **PHYSICAL PASS**
-- [x] NSXMLParser parse — **PHYSICAL PASS**
+Durum:
+- [x] ZIP merkezi dizin taraması — **PHYSICAL PASS**
+- [x] document.xml çıkarma — **PHYSICAL PASS**
+- [x] zlib ham açma — **PHYSICAL PASS**
+- [x] NSXMLParser ayrıştırma — **PHYSICAL PASS**
 
-## Rendering
-- [x] parser result reaches renderer — **PHYSICAL PASS**
-- [x] full document height can be calculated — **PHYSICAL PASS**
-- [ ] long DOCX remains open and visible — **FAIL**
-- [ ] beginning/middle/end scrolling — **PENDING**
-- [ ] virtualized 3–5 live page window — **PENDING PHYSICAL TEST**
+## Görüntüleme
+- [x] ayrıştırıcı sonucu görüntüleyiciye ulaşıyor — **PHYSICAL PASS**
+- [x] tam belge yüksekliği hesaplanabiliyor — **PHYSICAL PASS**
+- [ ] uzun DOCX açık ve görünür kalıyor — **FAIL**
+- [ ] başında/ortasında/sonunda kaydırma — **PENDING**
+- [ ] sanallaştırılmış 3–5 canlı sayfa penceresi — **PENDING PHYSICAL TEST**
 
-Known failure diagnostics:
+Bilinen hata tanılamaları:
 ```text
 content height observed: ~85k–90k px
 ```
-The initial giant-view renderer and the first all-pages-at-once paged renderer both closed on the physical iPad 1 after layout/render setup.
+İlk dev görünüm görüntüleyicisi ve tüm sayfaları baştan oluşturan ilk sayfalı görüntüleyici, fiziksel iPad 1'de yerleşim/görüntüleme kurulumundan sonra kapandı.
 
-## Content quality
-- [ ] paragraphs readable — **PENDING standalone render stability**
-- [ ] Turkish characters readable — **PENDING**
-- [ ] bold/italic visible — **PENDING**
-- [ ] headings visually distinct — **PENDING**
-- [ ] lists readable — **PENDING**
-- [ ] table rows keep useful field/value pairs on one line where possible — **PENDING standalone**
-- [ ] empty/NBSP-only cells do not create repeated separators — **PENDING standalone**
+## İçerik kalitesi
+- [ ] paragraflar okunabilir — **PENDING (bağımsız görüntüleme kararlılığı bekleniyor)**
+- [ ] Türkçe karakterler okunabilir — **PENDING**
+- [ ] kalın/italik görünüyor — **PENDING**
+- [ ] başlıklar görsel olarak ayırt ediliyor — **PENDING**
+- [ ] listeler okunabilir — **PENDING**
+- [ ] tablo satırları mümkün olduğunca anlamlı alan/değer çiftlerini tek satırda tutuyor — **PENDING (bağımsız)**
+- [ ] boş/yalnızca NBSP içeren hücreler tekrarlayan ayraç oluşturmuyor — **PENDING (bağımsız)**
 
-## Controls
-- [ ] A-/A+ bounded and stable
-- [ ] Find / Next / Previous works
-- [ ] not-found message safe
-- [ ] Info shows file/path/size
-- [ ] rotation/relayout does not crash
+## Kontroller
+- [ ] A-/A+ sınırlı ve kararlı
+- [ ] Bul / Sonraki / Önceki çalışıyor
+- [ ] bulunamadı mesajı güvenli
+- [ ] Bilgi dosya/yol/boyut gösteriyor
+- [ ] döndürme/yeniden yerleşim çökmeye yol açmıyor
 
-## Safety limits
-- [ ] >8 MiB compressed DOCX rejected before full parse
-- [ ] >4 MiB `word/document.xml` rejected
-- [ ] encrypted DOCX rejected
-- [ ] unsupported compression rejected
-- [ ] malformed ZIP/XML fails visibly without crash
+## Güvenlik sınırları
+- [ ] 8 MiB'tan büyük sıkıştırılmış DOCX tam ayrıştırmadan önce reddediliyor
+- [ ] 4 MiB'tan büyük `word/document.xml` reddediliyor
+- [ ] şifreli DOCX reddediliyor
+- [ ] desteklenmeyen sıkıştırma reddediliyor
+- [ ] bozuk ZIP/XML çökmeden görünür şekilde başarısız oluyor
 
-## Stability
-- [ ] open/close same DOCX 20 times
-- [ ] open several DOCX files sequentially
-- [ ] A+/A- repeatedly
-- [ ] repeated search
-- [ ] no progressive slowdown or crash
-- [ ] memory warning while reader is offscreen clears disposable state
+## Kararlılık
+- [ ] aynı DOCX'i 20 kez aç/kapat
+- [ ] birkaç DOCX dosyasını art arda aç
+- [ ] A+/A- tekrar tekrar
+- [ ] tekrarlı arama
+- [ ] kademeli yavaşlama veya çökme yok
+- [ ] okuyucu ekran dışındayken bellek uyarısı atılabilir durumu temizliyor
 
-## Boundary
-- [x] no file-manager behavior
-- [x] no downloader
-- [x] no PDF engine
-- [x] no Office/LibreOffice runtime
-- [x] no OCR/AI/ML
+## Sınır
+- [x] dosya yöneticisi davranışı yok
+- [x] indirici yok
+- [x] PDF motoru yok
+- [x] Office/LibreOffice çalışma zamanı yok
+- [x] OCR/AI/ML yok
 
-Do not convert any pending item to PASS without a physical-device test.
+Hiçbir bekleyen maddeyi fiziksel cihaz testi olmadan PASS'e çevirme.

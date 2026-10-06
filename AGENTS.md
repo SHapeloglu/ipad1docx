@@ -1,80 +1,80 @@
 # AGENTS.md
 
-## Non-negotiable platform
+## Değiştirilemez platform
 - iPad 1 / Apple A4 / 256 MB RAM
 - iOS 5.1.1
 - armv7
 - Objective-C
 - non-ARC / MRC
 - Theos
-- legacy iPhoneOS 6.1 SDK
+- eski iPhoneOS 6.1 SDK
 
-Do not raise the deployment target or introduce modern-only APIs for convenience.
+Kolaylık için dağıtım hedefini yükseltme veya yalnızca yeni iOS'ta olan API'ler ekleme.
 
-## Scope
-This repository is the DOCX-reading specialist for the iPad1 suite.
+## Kapsam
+Bu repo, iPad1 uygulama ailesinin DOCX okuma uzmanıdır.
 
-Allowed:
-- format-specific DOCX ZIP/XML parsing required for reading
-- lightweight read-only typography/layout
-- search and font controls
-- bounded image support only after physical profiling
+İzin verilenler:
+- okuma için gereken formata özgü DOCX ZIP/XML ayrıştırma
+- hafif, salt okunur tipografi/yerleşim
+- arama ve yazı boyutu kontrolleri
+- sınırlı görsel desteği, yalnızca fiziksel profil çıkarıldıktan sonra
 
-Not allowed:
-- general file management
-- general ZIP/archive UI
-- download manager
-- PDF reader features
-- media playback
-- Office/LibreOffice engine
-- edit/save
+İzin verilmeyenler:
+- genel dosya yönetimi
+- genel ZIP/arşiv arayüzü
+- indirme yöneticisi
+- PDF okuyucu özellikleri
+- medya oynatma
+- Office/LibreOffice motoru
+- düzenleme/kaydetme
 - OCR/AI/ML
 
-## Suite ownership rule
-Every application remains a specialist. If another suite app owns a capability, use URL handoff/callback instead of reimplementing that subsystem here.
+## Uygulama ailesi sahiplik kuralı
+Her uygulama uzman kalır. Bir yetenek ailedeki başka bir uygulamaya aitse, o alt sistemi burada yeniden yazmak yerine URL devri/geri çağrısı kullan.
 
-Current routing contract:
+Güncel yönlendirme sözleşmesi:
 ```text
 ipad1docx://open?path=<percent-encoded absolute path>
 ```
 
-## Physical validation rule
-Build success is not runtime PASS. Only the physical iPad 1 can mark a feature **PHYSICAL PASS**.
+## Fiziksel doğrulama kuralı
+Başarılı derleme çalışma zamanında GEÇTİ demek değildir. Bir özelliği yalnızca fiziksel iPad 1 **PHYSICAL PASS** olarak işaretleyebilir.
 
-Use these terms consistently:
-- COMPILE PASS
-- PHYSICAL PASS
-- FAIL
-- PENDING
+Bu terimleri tutarlı kullan:
+- COMPILE PASS (derleme geçti)
+- PHYSICAL PASS (fiziksel cihazda geçti)
+- FAIL (başarısız)
+- PENDING (bekliyor)
 
-Never mark a feature PASS from simulator assumptions, code inspection or successful compilation alone.
+Bir özelliği asla yalnızca simülatör varsayımlarından, kod incelemesinden veya başarılı derlemeden PASS olarak işaretleme.
 
-## Memory rule
-The 256 MB device limit dominates architecture decisions.
+## Bellek kuralı
+256 MB cihaz sınırı mimari kararlara hükmeder.
 
-Required behavior:
-- prefer streaming/bounded processing;
-- release disposable objects aggressively;
-- never keep document-wide heavyweight caches;
-- never create a full-document-height backing store;
-- never instantiate all long-document page views at once;
-- virtualize/recycle expensive render views;
-- keep live CoreText page views to a small visible window, roughly 3–5 when possible;
-- treat memory warnings as first-class behavior, not an edge case.
+Gereken davranış:
+- akışlı/sınırlı işlemeyi tercih et;
+- atılabilir nesneleri agresif şekilde serbest bırak;
+- belge genelinde ağır önbellekler asla tutma;
+- asla belgenin tam yüksekliğinde bir arka depo (backing store) oluşturma;
+- uzun belgenin tüm sayfa görünümlerini asla aynı anda oluşturma;
+- pahalı görüntüleme görünümlerini sanallaştır/yeniden kullan;
+- canlı CoreText sayfa görünümlerini küçük, görünür bir pencerede tut; mümkünse yaklaşık 3–5;
+- bellek uyarılarını kenar durum değil, birinci sınıf davranış olarak ele al.
 
-## Change discipline
-Before editing:
-1. read `SESSION.md`;
-2. read `ARCHITECTURE.md`;
-3. read `TASKS.md`;
-4. read `TESTING.md`;
-5. check `git status -sb` so local device-debug changes are not overwritten.
+## Değişiklik disiplini
+Düzenlemeden önce:
+1. `SESSION.md`'yi oku;
+2. `ARCHITECTURE.md`'yi oku;
+3. `TASKS.md`'yi oku;
+4. `TESTING.md`'yi oku;
+5. yerel cihaz hata ayıklama değişikliklerinin üzerine yazılmasın diye `git status -sb` kontrol et.
 
-When physical testing changes a known fact, update `SESSION.md` and `TESTING.md` in the same work session.
+Fiziksel test bilinen bir gerçeği değiştirdiğinde, aynı çalışma oturumunda `SESSION.md` ve `TESTING.md`'yi güncelle.
 
-## Debugging rule
-Prefer lightweight file logging over adding heavyweight runtime tooling on the device. Current temporary debug path:
+## Hata ayıklama kuralı
+Cihaza ağır çalışma zamanı araçları eklemek yerine hafif dosya günlüğünü tercih et. Güncel geçici hata ayıklama yolu:
 ```text
 /var/mobile/Media/iPad1Files/ipad1docx-debug.log
 ```
-Remove or compile out verbose diagnostics before release.
+Sürümden önce ayrıntılı tanılamaları kaldır veya derleme dışı bırak.

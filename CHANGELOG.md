@@ -1,36 +1,36 @@
 # CHANGELOG.md
 
-## Unreleased
+## Yayımlanmadı
 
-### Added
-- standalone `iPad1DOCXReader` application for iPad 1 / iOS 5.1.1
-- `ipad1docx://open?path=...` URL handoff
-- bounded DOCX ZIP reader
-- raw deflate support through zlib
-- `word/document.xml` extraction
-- NSXMLParser-based text/style extraction
-- basic bold, italic, heading, list and table-row semantics
-- read-only search controls
-- font-size controls
-- file/path/size info view
-- temporary device-side debug logging
+### Eklendi
+- iPad 1 / iOS 5.1.1 için bağımsız `iPad1DOCXReader` uygulaması
+- `ipad1docx://open?path=...` URL devri
+- sınırlı DOCX ZIP okuyucu
+- zlib ile ham deflate desteği
+- `word/document.xml` çıkarma
+- NSXMLParser tabanlı metin/stil çıkarma
+- temel kalın, italik, başlık, liste ve tablo satırı anlamları
+- salt okunur arama kontrolleri
+- yazı boyutu kontrolleri
+- dosya/yol/boyut bilgi görünümü
+- geçici cihaz tarafı hata ayıklama günlüğü
 
-### Verified on physical iPad 1
-- standalone application launch
-- URL scheme handoff
-- percent-encoded space decoding on tested path
-- file path resolution
-- ZIP central-directory scan
-- `word/document.xml` lookup
-- deflate inflate
-- NSXMLParser parse on a long DOCX
+### Fiziksel iPad 1'de doğrulandı
+- bağımsız uygulamanın açılması
+- URL scheme devri
+- test edilen yolda yüzde-kodlu boşluk çözme
+- dosya yolu çözümleme
+- ZIP merkezi dizin taraması
+- `word/document.xml` bulma
+- deflate açma
+- uzun bir DOCX'te NSXMLParser ayrıştırması
 
-### In progress
-- memory-safe long-document rendering
-- virtualized/recycled CoreText page views
+### Devam ediyor
+- bellek güvenli uzun belge görüntüleme
+- sanallaştırılmış/yeniden kullanılan CoreText sayfa görünümleri
 
-### Known issue
-Long DOCX documents currently close the application after layout/render setup on the physical iPad 1. Parser stages complete successfully; renderer memory usage is the active investigation.
+### Bilinen sorun
+Uzun DOCX belgeleri şu an fiziksel iPad 1'de yerleşim/görüntüleme kurulumundan sonra uygulamayı kapatıyor. Ayrıştırma aşamaları başarıyla tamamlanıyor; aktif inceleme görüntüleyicinin bellek kullanımı.
 
 ## 0.1.0
-Initial standalone package identity and Theos application skeleton.
+İlk bağımsız paket kimliği ve Theos uygulama iskeleti.

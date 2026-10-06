@@ -1,36 +1,36 @@
 # BACKLOG.md
 
-Items here are intentionally deferred. They are not part of the current stability milestone.
+Buradaki maddeler bilinçli olarak ertelenmiştir. Güncel kararlılık kilometre taşının parçası değildirler.
 
-## DOCX fidelity
-- richer numbered-list semantics
-- more complete `styles.xml` interpretation
-- header/footer reading
-- hyperlink display and optional safe handoff
-- improved table readability without implementing full Word layout
-- section/page-break semantics if they can remain lightweight
+## DOCX sadakati
+- daha zengin numaralı liste anlamları
+- daha kapsamlı `styles.xml` yorumlama
+- üst bilgi/alt bilgi okuma
+- köprü (hyperlink) gösterimi ve isteğe bağlı güvenli devir
+- tam Word yerleşimi yazmadan daha iyi tablo okunabilirliği
+- hafif kalabiliyorsa bölüm/sayfa sonu anlamları
 
-## Images
-Consider embedded images only after the text renderer is physically stable.
+## Görseller
+Gömülü görselleri ancak metin görüntüleyici fiziksel olarak kararlı olduktan sonra düşün.
 
-Required before implementation:
-- strict compressed/uncompressed byte limits
-- strict pixel-dimension limits
-- downsampling strategy compatible with iOS 5.1.1
-- no document-wide image cache
-- physical iPad 1 memory profiling
+Uygulamadan önce gerekenler:
+- sıkı sıkıştırılmış/açılmış bayt sınırları
+- sıkı piksel boyutu sınırları
+- iOS 5.1.1 ile uyumlu küçültme (downsampling) stratejisi
+- belge genelinde görsel önbelleği yok
+- fiziksel iPad 1 bellek profili
 
-## Navigation
-- lightweight document outline derived from headings
-- optional last-read position
-- optional recent-document list only if ownership does not conflict with iPad1Files
+## Gezinme
+- başlıklardan türetilen hafif belge ana hattı
+- isteğe bağlı son okunan konum
+- iPad1Files ile sahiplik çakışmıyorsa isteğe bağlı son belgeler listesi
 
-## Inter-app integration
-- callback URL contract after successful handoff
-- stronger iPad1Files routing integration
-- graceful fallback when DOCXReader is not installed
+## Uygulamalar arası entegrasyon
+- başarılı devirden sonra geri çağrı URL sözleşmesi
+- daha güçlü iPad1Files yönlendirme entegrasyonu
+- DOCXReader kurulu değilken nazik geri dönüş
 
-## Format feasibility
-- legacy `.doc` text extraction feasibility as a separate, bounded investigation
+## Format fizibilitesi
+- eski `.doc` metin çıkarma fizibilitesi, ayrı ve sınırlı bir araştırma olarak
 
-Do not add Office/LibreOffice, editing/save, macros, general archive management, OCR, AI or ML.
+Office/LibreOffice, düzenleme/kaydetme, makrolar, genel arşiv yönetimi, OCR, AI veya ML ekleme.

@@ -1,103 +1,103 @@
 # SESSION.md
 
-## Project
-`iPad1DOCXReader` — dedicated lightweight, read-only DOCX reader for the original iPad 1.
+## Proje
+`iPad1DOCXReader` — orijinal iPad 1 için özel, hafif, salt okunur DOCX okuyucu.
 
-Repository: `SHapeloglu/ipad1docx`
-Branch: `main`
+Repo: `SHapeloglu/ipad1docx`
+Dal: `main`
 
-## Immutable target
+## Değiştirilemez hedef
 - iPad 1 / Apple A4 / 256 MB RAM
 - iOS 5.1.1
 - armv7
 - Objective-C
 - non-ARC / MRC
 - Theos
-- legacy iPhoneOS 6.1 SDK
+- eski iPhoneOS 6.1 SDK
 
 ```make
 ARCHS = armv7
 TARGET = iphone:clang:6.1:5.1
 ```
 
-## Ownership
-This app owns DOCX reading only. It must not become a general file manager, archive manager, downloader, media player, terminal, or PDF reader.
+## Sahiplik
+Bu uygulama yalnızca DOCX okumadan sorumludur. Genel dosya yöneticisine, arşiv yöneticisine, indiriciye, medya oynatıcıya, terminale veya PDF okuyucuya dönüşmemelidir.
 
-Suite routing:
+Uygulama ailesi yönlendirmesi:
 ```text
 .docx -> iPad1Files -> ipad1docx://open?path=<encoded absolute path> -> iPad1DOCXReader
 ```
 
-Canonical shared storage:
+Standart ortak depolama:
 ```text
 /var/mobile/Media/iPad1Files
 ```
 
-## Current physical status
-- Standalone application launch: **PHYSICAL PASS**
-- `ipad1docx://open?path=...` URL handoff: **PHYSICAL PASS**
-- Percent-encoded spaces in tested path: **PHYSICAL PASS**
-- File existence/path validation: **PHYSICAL PASS**
-- DOCX ZIP central-directory scan: **PHYSICAL PASS**
-- `word/document.xml` lookup: **PHYSICAL PASS**
-- raw deflate inflate via zlib: **PHYSICAL PASS**
-- NSXMLParser parse on long test DOCX: **PHYSICAL PASS**
-- parser output on test file: 77,740 text chars / 898 style ranges
-- long-document display: **FAIL — app closes after layout/render setup**
+## Güncel fiziksel durum
+- Bağımsız uygulamanın açılması: **PHYSICAL PASS**
+- `ipad1docx://open?path=...` URL devri: **PHYSICAL PASS**
+- Test edilen yolda yüzde-kodlu boşluklar: **PHYSICAL PASS**
+- Dosya varlığı/yol doğrulaması: **PHYSICAL PASS**
+- DOCX ZIP merkezi dizin taraması: **PHYSICAL PASS**
+- `word/document.xml` bulma: **PHYSICAL PASS**
+- zlib ile ham deflate açma: **PHYSICAL PASS**
+- uzun test DOCX'inde NSXMLParser ayrıştırması: **PHYSICAL PASS**
+- test dosyasında ayrıştırıcı çıktısı: 77.740 metin karakteri / 898 stil aralığı
+- uzun belge görüntüleme: **FAIL — uygulama yerleşim/görüntüleme kurulumundan sonra kapanıyor**
 
-Known test file:
+Bilinen test dosyası:
 ```text
 /var/mobile/Media/iPad1Files/PDFs/Les Miresables.docx
 ```
-Test file size observed on device: 97,844 bytes.
-Inflated `word/document.xml`: 1,498,378 bytes.
+Cihazda gözlenen test dosyası boyutu: 97.844 bayt.
+Açılmış `word/document.xml`: 1.498.378 bayt.
 
-## Current renderer diagnosis
-The original renderer created one very tall CoreText view. Physical logging showed a calculated content height around 85k–90k px, which is unsuitable for the 256 MB iPad 1 memory budget.
+## Güncel görüntüleyici teşhisi
+Orijinal görüntüleyici tek bir çok uzun CoreText görünümü oluşturuyordu. Fiziksel günlükler yaklaşık 85–90 bin piksellik bir içerik yüksekliği gösterdi; bu, 256 MB'lık iPad 1 bellek bütçesine uygun değil.
 
-A first paged renderer split content into roughly 900 px page views, but still instantiated all page views up front. The parent view was then constrained to viewport height, yet the app still closed after layout. Current direction is therefore true virtualization/recycling: compute all page ranges, but keep only a small visible window of page views alive.
+İlk sayfalı görüntüleyici içeriği yaklaşık 900 piksellik sayfa görünümlerine böldü, ama hâlâ tüm sayfa görünümlerini baştan oluşturuyordu. Ardından üst görünüm görüntü alanı yüksekliğiyle sınırlandı, yine de uygulama yerleşimden sonra kapandı. Bu yüzden güncel yön gerçek sanallaştırma/yeniden kullanma: tüm sayfa aralıklarını hesapla, ama yalnızca küçük, görünür bir sayfa görünümü penceresini canlı tut.
 
-## Repository vs local working tree
-Repository `main` now contains the virtualized `DocumentRichTextView` work in progress.
+## Repo ve yerel çalışma ağacı
+Repo `main` dalı artık devam eden sanallaştırılmış `DocumentRichTextView` çalışmasını içeriyor.
 
-The developer workstation currently has a local modification to:
+Geliştirici bilgisayarında şu dosyada yerel bir değişiklik var:
 ```text
 DocumentReaderViewController.m
 ```
-This local change contains viewport/layout diagnostics and must not be overwritten accidentally.
+Bu yerel değişiklik görüntü alanı/yerleşim tanılamalarını içeriyor ve yanlışlıkla üzerine yazılmamalı.
 
-Before continuing, run:
+Devam etmeden önce çalıştır:
 ```bash
 git status -sb
 ```
-and preserve that local modification while pulling or wiring the virtualized renderer.
+ve çekerken veya sanallaştırılmış görüntüleyiciyi bağlarken bu yerel değişikliği koru.
 
-## Immediate next action
-1. Pull latest `main` while preserving local `DocumentReaderViewController.m` changes.
-2. Wire the controller/scroll view to the virtualized renderer update method.
-3. Keep only a small visible page window alive (target: about 3–5 views).
-4. Clean build.
-5. Install on the physical iPad 1.
-6. Re-test `Les Miresables.docx`.
-7. Only after long-document display is physically stable, test A-/A+, search, rotation and repeated open/close.
-8. Only after standalone routing/display PASS, switch iPad1Files `.docx` routing from PDFReader to DOCXReader.
-9. Only after iPad1Files cutover PASS, remove embedded DOCX fallback code from iPad1PDFReader.
+## Hemen yapılacak sonraki adım
+1. Yerel `DocumentReaderViewController.m` değişikliklerini koruyarak en son `main`'i çek.
+2. Controller'ı/scroll view'ı sanallaştırılmış görüntüleyicinin güncelleme metoduna bağla.
+3. Yalnızca küçük, görünür bir sayfa penceresini canlı tut (hedef: yaklaşık 3–5 görünüm).
+4. Temiz derle.
+5. Fiziksel iPad 1'e kur.
+6. `Les Miresables.docx`'i yeniden test et.
+7. Ancak uzun belge görüntüleme fiziksel olarak kararlı olduktan sonra A-/A+, arama, döndürme ve tekrarlı aç/kapat'ı test et.
+8. Ancak bağımsız yönlendirme/görüntüleme PASS olduktan sonra iPad1Files'ın `.docx` yönlendirmesini PDFReader'dan DOCXReader'a çevir.
+9. Ancak iPad1Files geçişi PASS olduktan sonra iPad1PDFReader'daki gömülü DOCX yedek kodunu kaldır.
 
-## Build
+## Derleme
 ```bash
 make clean
 rm -rf .theos packages
 make package FINALPACKAGE=1
 ```
 
-Expected package:
+Beklenen paket:
 ```text
 packages/com.olap.ipad1docxreader_0.1.0_iphoneos-arm.deb
 ```
 
-## Debug log
-Temporary diagnostics currently write to:
+## Hata ayıklama günlüğü
+Geçici tanılamalar şu an şuraya yazıyor:
 ```text
 /var/mobile/Media/iPad1Files/ipad1docx-debug.log
 ```
-Remove or compile out verbose logging before a release build.
+Sürüm derlemesinden önce ayrıntılı günlüğü kaldır veya derleme dışı bırak.

@@ -1,32 +1,32 @@
 # iPad1DOCXReader
 
-Lightweight read-only DOCX reader for the original iPad 1.
+Orijinal iPad 1 için hafif, salt okunur DOCX okuyucu.
 
-Target platform:
+Hedef platform:
 - iPad 1 / Apple A4 / 256 MB RAM
 - iOS 5.1.1
 - armv7
 - Objective-C / MRC
-- Theos / legacy iPhoneOS 6.1 SDK
+- Theos / eski iPhoneOS 6.1 SDK
 
-Open contract:
+Açma sözleşmesi:
 
 ```text
 ipad1docx://open?path=<percent-encoded-absolute-path>
 ```
 
-Scope: readable DOCX content, not Microsoft Word layout fidelity. The app parses only the DOCX parts required for reading and keeps strict memory/file-size bounds.
+Kapsam: Microsoft Word yerleşim sadakati değil, okunabilir DOCX içeriği. Uygulama yalnızca okuma için gereken DOCX parçalarını ayrıştırır ve sıkı bellek/dosya boyutu sınırları uygular.
 
-Current migrated core:
-- bounded DOCX ZIP reader (`word/document.xml` only)
-- NSXMLParser text/style extraction
-- paragraphs and line breaks
-- basic bold / italic / heading styles
-- simple lists
-- lightweight table rows with empty-cell suppression
-- CoreText rendering
+Taşınmış güncel çekirdek:
+- sınırlı DOCX ZIP okuyucu (yalnızca `word/document.xml`)
+- NSXMLParser ile metin/stil çıkarma
+- paragraflar ve satır sonları
+- temel kalın / italik / başlık stilleri
+- basit listeler
+- boş hücreleri gizleyen hafif tablo satırları
+- CoreText ile görüntüleme
 - A- / A+
-- Find / Next / Previous
-- file info
+- Bul / Sonraki / Önceki
+- dosya bilgisi
 
-Out of scope: editing, save, macros, remote relationships, Office/LibreOffice engine, OCR, AI/ML, general ZIP/file-manager features.
+Kapsam dışı: düzenleme, kaydetme, makrolar, uzak ilişkiler (remote relationships), Office/LibreOffice motoru, OCR, AI/ML, genel ZIP/dosya yöneticisi özellikleri.
